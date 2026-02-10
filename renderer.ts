@@ -199,8 +199,8 @@ export class HabitHeatmapRenderer {
     }
 
     cell.title = `${date} • ${habit}: ${appearance.tooltip}`;
-    cell.addEventListener("click", async () => {
-      await this.navigateToDate(model, habit, date);
+    cell.addEventListener("click", () => {
+      void this.navigateToDate(model, habit, date);
     });
   }
 
@@ -649,19 +649,17 @@ function resolveRange(config: NormalizedConfig, file: TFile): { ok: true; range:
   if (config.range.type === "month") {
     const year = config.range.year;
     const month = config.range.month;
-
     if (!isValidYear(year)) {
-      errors.push("month range requires range.year");
+      return { ok: false, errors: ["month range requires range.year"] };
     }
-    if (!Number.isInteger(month) || month == null || month < 1 || month > 12) {
-      errors.push("month range requires range.month (1-12)");
-    }
-    if (errors.length > 0) {
-      return { ok: false, errors };
+    if (typeof month !== "number" || !Number.isInteger(month) || month < 1 || month > 12) {
+      return { ok: false, errors: ["month range requires range.month (1-12)"] };
     }
 
-    const start = `${year}-${String(month).padStart(2, "0")}-01`;
-    const endDate = new Date(year as number, month as number, 0);
+    const monthYear = year;
+    const monthNumber = month;
+    const start = `${monthYear}-${String(monthNumber).padStart(2, "0")}-01`;
+    const endDate = new Date(monthYear, monthNumber, 0);
     const end = toIsoDate(endDate);
 
     return {
@@ -679,7 +677,7 @@ function resolveRange(config: NormalizedConfig, file: TFile): { ok: true; range:
     return { ok: false, errors: ["year range requires range.year"] };
   }
 
-  const year = config.range.year as number;
+  const year = config.range.year;
   const start = `${year}-01-01`;
   const end = `${year}-12-31`;
 

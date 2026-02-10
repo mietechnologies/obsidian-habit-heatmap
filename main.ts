@@ -9,25 +9,27 @@ export default class HabitHeatmapPlugin extends Plugin {
   private renderer!: HabitHeatmapRenderer;
   private refreshTimer: number | null = null;
 
-  async onload() {
+  onload() {
     this.scanner = new HabitScanner(this.app);
     this.renderer = new HabitHeatmapRenderer(this.app, this.scanner);
 
-    this.registerMarkdownCodeBlockProcessor("habit-heatmap", async (source, el, ctx) => {
-      await this.renderer.render(source, el, ctx);
+    this.registerMarkdownCodeBlockProcessor("habit-heatmap", (source, el, ctx) => {
+      void this.renderer.render(source, el, ctx).catch((error) => {
+        console.error("habit-heatmap: render failed", error);
+      });
     });
 
     this.addCommand({
-      id: "insert-habit-heatmap",
-      name: "Insert habit heatmap",
+      id: "insert-heatmap",
+      name: "Insert heatmap",
       editorCallback: (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
         this.insertTemplate(editor, ctx.file ?? null);
       }
     });
 
     this.addCommand({
-      id: "refresh-habit-heatmaps",
-      name: "Refresh habit heatmaps",
+      id: "refresh-heatmaps",
+      name: "Refresh heatmaps",
       callback: () => {
         this.refreshOpenMarkdownPreviews();
       }
