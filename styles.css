@@ -1,0 +1,162 @@
+.habit-heatmap-plugin {
+  --hh-cell-size: 12px;
+  --hh-cell-gap: 2px;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary-alt);
+}
+
+.habit-heatmap-plugin__title {
+  margin: 0 0 0.35rem;
+}
+
+.habit-heatmap-plugin__week {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.habit-heatmap-plugin__week-row {
+  display: grid;
+  grid-template-columns: minmax(100px, max-content) repeat(7, var(--hh-cell-size));
+  gap: var(--hh-cell-gap);
+  align-items: center;
+  justify-content: center;
+}
+
+.habit-heatmap-plugin__habit-label {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.habit-heatmap-plugin__section {
+  margin-top: 0.75rem;
+}
+
+.habit-heatmap-plugin__sections--month {
+  margin-top: 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.habit-heatmap-plugin__sections--month .habit-heatmap-plugin__section {
+  margin-top: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+}
+
+.habit-heatmap-plugin__section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95em;
+}
+
+.habit-heatmap-plugin__calendar {
+  overflow-x: auto;
+  text-align: center;
+}
+
+.habit-heatmap-plugin__weekday {
+  display: inline-flex;
+  width: var(--hh-cell-size);
+  justify-content: center;
+  font-size: 0.7em;
+  color: var(--text-faint);
+  margin-right: var(--hh-cell-gap);
+}
+
+.habit-heatmap-plugin__days {
+  margin-top: 0.2rem;
+  display: grid;
+  grid-template-columns: repeat(7, var(--hh-cell-size));
+  grid-auto-rows: var(--hh-cell-size);
+  gap: var(--hh-cell-gap);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.habit-heatmap-plugin__days--year {
+  margin-top: 0;
+  grid-template-columns: none;
+  grid-template-rows: repeat(7, var(--hh-cell-size));
+  grid-auto-flow: column;
+  grid-auto-columns: var(--hh-cell-size);
+}
+
+.habit-heatmap-plugin__cell {
+  width: var(--hh-cell-size);
+  height: var(--hh-cell-size);
+  border-radius: 3px;
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+}
+
+.habit-heatmap-plugin__cell:hover {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.habit-heatmap-plugin__cell--outside {
+  background: transparent;
+  border-style: dashed;
+  cursor: default;
+  opacity: 0.45;
+}
+
+.habit-heatmap-plugin__cell--blank {
+  border-style: dotted;
+}
+
+.habit-heatmap-plugin__legend {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.habit-heatmap-plugin__legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+}
+
+.habit-heatmap-plugin__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.habit-heatmap-plugin__legend-swatch {
+  width: var(--hh-cell-size);
+  height: var(--hh-cell-size);
+  border-radius: 3px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.habit-heatmap-plugin__error,
+.habit-heatmap-plugin__info {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.habit-heatmap-plugin__error {
+  border: 1px solid var(--color-red);
+  background: color-mix(in srgb, var(--color-red) 12%, transparent);
+}
+
+.habit-heatmap-plugin__error ul {
+  margin: 0.4rem 0 0;
+}
+
+.habit-heatmap-plugin__info {
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
