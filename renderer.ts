@@ -126,13 +126,17 @@ export class HabitHeatmapRenderer {
     const table = root.createDiv({ cls: "habit-heatmap-plugin__week" });
 
     for (const habit of habits) {
-      const row = table.createDiv({ cls: "habit-heatmap-plugin__week-row" });
-      row.createDiv({ cls: "habit-heatmap-plugin__habit-label", text: toHabitDisplayName(habit) });
-
       const byDate = model.scan.valuesByHabit.get(habit) ?? new Map<string, ResolvedHabitValue>();
+      const stats = buildHabitStats(model.range.dates, byDate);
+      const item = table.createDiv({ cls: "habit-heatmap-plugin__week-item" });
+      const meta = item.createDiv({ cls: "habit-heatmap-plugin__habit-label" });
+      meta.createDiv({ cls: "habit-heatmap-plugin__habit-title", text: toHabitDisplayName(habit) });
+      renderStats(meta, stats, "row");
+      const cellsRow = item.createDiv({ cls: "habit-heatmap-plugin__week-cells" });
+
       for (const date of model.range.dates) {
         const value = byDate.get(date);
-        const cell = row.createDiv({ cls: "habit-heatmap-plugin__cell" });
+        const cell = cellsRow.createDiv({ cls: "habit-heatmap-plugin__cell" });
         this.decorateCell(cell, model, habit, date, value);
       }
     }
@@ -147,9 +151,10 @@ export class HabitHeatmapRenderer {
 
     for (const habit of habits) {
       const section = sectionsWrap.createDiv({ cls: "habit-heatmap-plugin__section" });
-      section.createEl("h5", { text: toHabitDisplayName(habit), cls: "habit-heatmap-plugin__section-title" });
-
       const byDate = model.scan.valuesByHabit.get(habit) ?? new Map<string, ResolvedHabitValue>();
+      const stats = buildHabitStats(model.range.dates, byDate);
+      section.createEl("h5", { text: toHabitDisplayName(habit), cls: "habit-heatmap-plugin__section-title" });
+      renderStats(section, stats, model.range.type === "month" ? "stack" : "row");
       const grid = section.createDiv({ cls: "habit-heatmap-plugin__calendar" });
       const isYear = model.range.type === "year";
 
@@ -391,6 +396,63 @@ function resolveAppearance(
     tooltip: `${value.value}`,
     kind: "data"
   };
+}
+
+function buildHabitStats(
+  dates: string[],
+  valuesByDate: Map<string, ResolvedHabitValue>
+): { completed: number; notCompleted: number; remaining: number } {
+  const today = todayIsoDate();
+  let completed = 0;
+  let notCompleted = 0;
+  let remaining = 0;
+
+  for (const date of dates) {
+    if (date > today) {
+      remaining += 1;
+      continue;
+    }
+
+    const value = valuesByDate.get(date);
+    if (isCompletedValue(value)) {
+      completed += 1;
+    } else {
+      notCompleted += 1;
+    }
+  }
+
+  return { completed, notCompleted, remaining };
+}
+
+function isCompletedValue(value: ResolvedHabitValue | undefined): boolean {
+  if (value == null) {
+    return false;
+  }
+
+  if (value.kind === "boolean") {
+    return value.value;
+  }
+
+  return value.value > 0;
+}
+
+function renderStats(
+  container: HTMLElement,
+  stats: { completed: number; notCompleted: number; remaining: number },
+  mode: "row" | "stack"
+): void {
+  const wrap = container.createDiv({
+    cls: `habit-heatmap-plugin__habit-stats ${mode === "stack" ? "habit-heatmap-plugin__habit-stats--stack" : "habit-heatmap-plugin__habit-stats--row"}`
+  });
+  const points = [
+    `Completed: ${stats.completed}`,
+    `Not completed: ${stats.notCompleted}`,
+    `Remaining: ${stats.remaining}`
+  ];
+
+  for (const point of points) {
+    wrap.createDiv({ cls: "habit-heatmap-plugin__habit-stat-item", text: point });
+  }
 }
 
 function resolveNumericColor(thresholds: NumericThreshold[], value: number): string {

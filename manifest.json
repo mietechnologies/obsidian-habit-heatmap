@@ -1,7 +1,7 @@
 {
   "id": "habit-heatmap",
   "name": "Habit Heatmap",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.5.0",
   "description": "Render inline habit heatmaps from dated headings and inline/checklist habit entries.",
   "author": "mietechnologies",
