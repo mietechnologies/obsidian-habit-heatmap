@@ -213,7 +213,7 @@ export class HabitHeatmapRenderer {
 
     const leaf = this.app.workspace.getLeaf(true);
     await leaf.openFile(candidate.file, { active: true });
-    this.app.workspace.revealLeaf(leaf);
+    void this.app.workspace.revealLeaf(leaf);
 
     const view = leaf.view;
     if (!(view instanceof MarkdownView)) {
@@ -496,7 +496,7 @@ function parseConfig(source: string): { ok: true; value: HeatmapBlockConfig } | 
   }
 
   try {
-    const parsed = trimmed.startsWith("{") || trimmed.startsWith("[") ? JSON.parse(trimmed) : parseYaml(trimmed);
+    const parsed: unknown = trimmed.startsWith("{") || trimmed.startsWith("[") ? JSON.parse(trimmed) : parseYaml(trimmed);
     if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return { ok: false, error: "Config must be an object (JSON/YAML mapping)." };
     }
