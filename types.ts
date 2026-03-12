@@ -2,7 +2,19 @@ import { TFile } from "obsidian";
 
 export type RangeType = "week" | "month" | "year";
 export type HabitMode = "auto" | "list";
-export type WeekStart = "Monday" | "Sunday";
+export type WeekStart = "Saturday" | "Sunday" | "Monday";
+
+export interface HabitColorConfig {
+  noData?: string;
+  blankFuture?: string;
+  boolean?: {
+    true?: string;
+    false?: string;
+  };
+  numeric?: {
+    thresholds?: NumericThresholdConfig[];
+  };
+}
 
 export interface HeatmapBlockConfig {
   range?: {
@@ -25,6 +37,7 @@ export interface HeatmapBlockConfig {
     numeric?: {
       thresholds?: NumericThresholdConfig[];
     };
+    habits?: Record<string, HabitColorConfig>;
   };
   display?: {
     title?: string;
@@ -78,6 +91,7 @@ export interface NormalizedConfig {
     numeric: {
       thresholds: NumericThreshold[];
     };
+    habits: Record<string, NormalizedHabitColors>;
   };
   display: {
     title: string;
@@ -145,4 +159,16 @@ export interface RenderContextModel {
   config: NormalizedConfig;
   range: RangeResolution;
   scan: ScanResult;
+}
+
+export interface NormalizedHabitColors {
+  noData: string;
+  blankFuture: string;
+  boolean: {
+    true: string;
+    false: string;
+  };
+  numeric: {
+    thresholds: NumericThreshold[];
+  };
 }

@@ -74,6 +74,20 @@ colors:
         color: "#4b5563"
       - gt: 50
         color: "#6b7280"
+  habits:
+    purity:
+      boolean:
+        true: "#3b82f6"
+        false: "#f97316"
+    reading:
+      numeric:
+        thresholds:
+          - le: 0
+            color: "#1f2937"
+          - le: 20
+            color: "#0f766e"
+          - gt: 20
+            color: "#14b8a6"
 display:
   title: ""
   showLegend: true
@@ -83,6 +97,8 @@ display:
 ```
 
 JSON is also supported.
+
+Per-habit overrides live under `colors.habits.<habit_name>`. Each habit can override `boolean`, `numeric.thresholds`, `noData`, and `blankFuture` while inheriting any global colors you do not redefine.
 
 ## Range Modes
 
@@ -96,11 +112,13 @@ JSON is also supported.
 ### Month
 - `range.type: month`
 - Requires `range.year` and `range.month` (1-12)
+- Optional `display.weekStart: Saturday | Sunday | Monday` for calendar alignment
 - Scans markdown notes in current note directory only (no subdirectories)
 
 ### Year
 - `range.type: year`
 - Requires `range.year`
+- Optional `display.weekStart: Saturday | Sunday | Monday` for calendar alignment
 - Scans markdown notes in current note directory and all subdirectories
 
 Files in folders named `templates` (case-insensitive) are ignored.

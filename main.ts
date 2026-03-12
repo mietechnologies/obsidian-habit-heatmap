@@ -2,7 +2,7 @@ import { Editor, MarkdownFileInfo, MarkdownView, Plugin, TAbstractFile, TFile } 
 import { HabitHeatmapRenderer } from "./renderer";
 import { HabitScanner } from "./scanner";
 
-const TEMPLATE_BLOCK = "```habit-heatmap\nrange:\n  type: week\n  fromTitle: true\nhabits:\n  mode: auto\ncolors:\n  noData: \"#2b2b2b\"\n  boolean:\n    true: \"#22c55e\"\n    false: \"#ef4444\"\n  numeric:\n    thresholds:\n      - le: 0\n        color: \"#111827\"\n      - le: 10\n        color: \"#1f2937\"\n      - le: 25\n        color: \"#374151\"\n      - le: 50\n        color: \"#4b5563\"\n      - gt: 50\n        color: \"#6b7280\"\ndisplay:\n  title: \"\"\n  showLegend: true\n  cellSize: 12\n  gap: 2\n```";
+const TEMPLATE_BLOCK = "```habit-heatmap\nrange:\n  type: week\n  fromTitle: true\nhabits:\n  mode: auto\ncolors:\n  noData: \"#2b2b2b\"\n  boolean:\n    true: \"#22c55e\"\n    false: \"#ef4444\"\n  numeric:\n    thresholds:\n      - le: 0\n        color: \"#111827\"\n      - le: 10\n        color: \"#1f2937\"\n      - le: 25\n        color: \"#374151\"\n      - le: 50\n        color: \"#4b5563\"\n      - gt: 50\n        color: \"#6b7280\"\ndisplay:\n  title: \"\"\n  showLegend: true\n  cellSize: 12\n  gap: 2\n  weekStart: Monday\n```";
 
 export default class HabitHeatmapPlugin extends Plugin {
   private scanner!: HabitScanner;

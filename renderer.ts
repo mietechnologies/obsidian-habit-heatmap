@@ -3,7 +3,9 @@ import { normalizeIsoDate } from "./parser";
 import { HabitScanner } from "./scanner";
 import {
   HeatmapBlockConfig,
+  HabitColorConfig,
   NormalizedConfig,
+  NormalizedHabitColors,
   NumericThresholdConfig,
   NumericThreshold,
   RangeResolution,
@@ -38,7 +40,8 @@ const DEFAULT_CONFIG: NormalizedConfig = {
         { kind: "le", value: 50, color: "#4b5563" },
         { kind: "gt", value: 50, color: "#6b7280" }
       ]
-    }
+    },
+    habits: {}
   },
   display: {
     title: "",
@@ -118,7 +121,7 @@ export class HabitHeatmapRenderer {
     }
 
     if (model.config.display.showLegend) {
-      this.renderLegend(root, model.config);
+      this.renderLegend(root, model.config, habits);
     }
   }
 
@@ -192,7 +195,7 @@ export class HabitHeatmapRenderer {
     date: string,
     value: ResolvedHabitValue | undefined
   ): void {
-    const appearance = resolveAppearance(model.config, date, value);
+    const appearance = resolveAppearance(model.config, habit, date, value);
     cell.style.setProperty("background", appearance.color);
     if (appearance.kind === "blank") {
       cell.addClass("habit-heatmap-plugin__cell--blank");
@@ -320,19 +323,29 @@ export class HabitHeatmapRenderer {
     };
   }
 
-  private renderLegend(root: HTMLElement, config: NormalizedConfig): void {
+  private renderLegend(root: HTMLElement, config: NormalizedConfig, habits: string[]): void {
     const legend = root.createDiv({ cls: "habit-heatmap-plugin__legend" });
-    const baseRow = legend.createDiv({ cls: "habit-heatmap-plugin__legend-row" });
-    const numericRow = legend.createDiv({ cls: "habit-heatmap-plugin__legend-row" });
+    const overrideHabits = habits.filter((habit) => config.colors.habits[habit] != null);
 
-    appendLegendItem(baseRow, config.colors.boolean.true, "Boolean true");
-    appendLegendItem(baseRow, config.colors.boolean.false, "Boolean false");
-    appendLegendItem(baseRow, config.colors.noData, "No data (past)");
-    appendLegendItem(baseRow, config.colors.blankFuture, "Blank (today/future missing)");
+    if (overrideHabits.length === 0) {
+      renderLegendPalette(legend, "Legend", {
+        noData: config.colors.noData,
+        blankFuture: config.colors.blankFuture,
+        boolean: config.colors.boolean,
+        numeric: config.colors.numeric
+      });
+      return;
+    }
 
-    for (const threshold of config.colors.numeric.thresholds) {
-      const label = threshold.kind === "le" ? `Numeric <= ${threshold.value}` : `Numeric > ${threshold.value}`;
-      appendLegendItem(numericRow, threshold.color, label);
+    renderLegendPalette(legend, "Default", {
+      noData: config.colors.noData,
+      blankFuture: config.colors.blankFuture,
+      boolean: config.colors.boolean,
+      numeric: config.colors.numeric
+    });
+
+    for (const habit of overrideHabits) {
+      renderLegendPalette(legend, toHabitDisplayName(habit), resolveHabitColors(config, habit));
     }
   }
 
@@ -360,24 +373,47 @@ function appendLegendItem(parent: HTMLElement, color: string, label: string): vo
   item.createSpan({ text: label });
 }
 
+function renderLegendPalette(
+  parent: HTMLElement,
+  title: string,
+  colors: Pick<NormalizedHabitColors, "noData" | "blankFuture" | "boolean" | "numeric">
+): void {
+  const group = parent.createDiv({ cls: "habit-heatmap-plugin__legend-group" });
+  group.createDiv({ cls: "habit-heatmap-plugin__legend-group-title", text: title });
+  const baseRow = group.createDiv({ cls: "habit-heatmap-plugin__legend-row" });
+  const numericRow = group.createDiv({ cls: "habit-heatmap-plugin__legend-row" });
+
+  appendLegendItem(baseRow, colors.boolean.true, "Boolean true");
+  appendLegendItem(baseRow, colors.boolean.false, "Boolean false");
+  appendLegendItem(baseRow, colors.noData, "No data (past)");
+  appendLegendItem(baseRow, colors.blankFuture, "Blank (today/future missing)");
+
+  for (const threshold of colors.numeric.thresholds) {
+    const label = threshold.kind === "le" ? `Numeric <= ${threshold.value}` : `Numeric > ${threshold.value}`;
+    appendLegendItem(numericRow, threshold.color, label);
+  }
+}
+
 function resolveAppearance(
   config: NormalizedConfig,
+  habit: string,
   date: string,
   value: ResolvedHabitValue | undefined
 ): { color: string; tooltip: string; kind: "data" | "blank" } {
   const today = todayIsoDate();
+  const colors = resolveHabitColors(config, habit);
 
   if (value == null) {
     if (date >= today) {
       return {
-        color: config.colors.blankFuture,
+        color: colors.blankFuture,
         tooltip: "blank (today/future missing)",
         kind: "blank"
       };
     }
 
     return {
-      color: config.colors.noData,
+      color: colors.noData,
       tooltip: "no data",
       kind: "data"
     };
@@ -385,16 +421,25 @@ function resolveAppearance(
 
   if (value.kind === "boolean") {
     return {
-      color: value.value ? config.colors.boolean.true : config.colors.boolean.false,
+      color: value.value ? colors.boolean.true : colors.boolean.false,
       tooltip: value.value ? "true" : "false",
       kind: "data"
     };
   }
 
   return {
-    color: resolveNumericColor(config.colors.numeric.thresholds, value.value),
+    color: resolveNumericColor(colors.numeric.thresholds, value.value),
     tooltip: `${value.value}`,
     kind: "data"
+  };
+}
+
+function resolveHabitColors(config: NormalizedConfig, habit: string): NormalizedHabitColors {
+  return config.colors.habits[habit] ?? {
+    noData: config.colors.noData,
+    blankFuture: config.colors.blankFuture,
+    boolean: config.colors.boolean,
+    numeric: config.colors.numeric
   };
 }
 
@@ -512,6 +557,18 @@ function normalizeConfig(input: HeatmapBlockConfig): { ok: true; config: Normali
 
   const thresholdsInput = input.colors?.numeric?.thresholds ?? [];
   const thresholds = thresholdsInput.length > 0 ? normalizeThresholds(thresholdsInput, errors) : DEFAULT_CONFIG.colors.numeric.thresholds;
+  const defaultColors: Pick<NormalizedHabitColors, "noData" | "blankFuture" | "boolean" | "numeric"> = {
+    noData: input.colors?.noData ?? DEFAULT_CONFIG.colors.noData,
+    blankFuture: input.colors?.blankFuture ?? DEFAULT_CONFIG.colors.blankFuture,
+    boolean: {
+      true: input.colors?.boolean?.true ?? DEFAULT_CONFIG.colors.boolean.true,
+      false: input.colors?.boolean?.false ?? DEFAULT_CONFIG.colors.boolean.false
+    },
+    numeric: {
+      thresholds
+    }
+  };
+  const habitColors = normalizeHabitColors(input.colors?.habits, defaultColors, errors);
 
   const list = (input.habits?.list ?? [])
     .map((habit) => `${habit}`.trim())
@@ -542,22 +599,18 @@ function normalizeConfig(input: HeatmapBlockConfig): { ok: true; config: Normali
       list: [...new Set(list)]
     },
     colors: {
-      noData: input.colors?.noData ?? DEFAULT_CONFIG.colors.noData,
-      blankFuture: input.colors?.blankFuture ?? DEFAULT_CONFIG.colors.blankFuture,
-      boolean: {
-        true: input.colors?.boolean?.true ?? DEFAULT_CONFIG.colors.boolean.true,
-        false: input.colors?.boolean?.false ?? DEFAULT_CONFIG.colors.boolean.false
-      },
-      numeric: {
-        thresholds
-      }
+      noData: defaultColors.noData,
+      blankFuture: defaultColors.blankFuture,
+      boolean: defaultColors.boolean,
+      numeric: defaultColors.numeric,
+      habits: habitColors
     },
     display: {
       title: input.display?.title ?? DEFAULT_CONFIG.display.title,
       showLegend: input.display?.showLegend ?? DEFAULT_CONFIG.display.showLegend,
       cellSize: clampNumber(input.display?.cellSize, 6, 30, DEFAULT_CONFIG.display.cellSize),
       gap: clampNumber(input.display?.gap, 0, 8, DEFAULT_CONFIG.display.gap),
-      weekStart: input.display?.weekStart === "Sunday" ? "Sunday" : "Monday"
+      weekStart: normalizeWeekStart(input.display?.weekStart)
     }
   };
 
@@ -601,6 +654,38 @@ function normalizeThresholds(
   if (output.length === 0) {
     errors.push("colors.numeric.thresholds must include at least one valid threshold");
     return DEFAULT_CONFIG.colors.numeric.thresholds;
+  }
+
+  return output;
+}
+
+function normalizeHabitColors(
+  input: Record<string, HabitColorConfig> | undefined,
+  defaults: Pick<NormalizedHabitColors, "noData" | "blankFuture" | "boolean" | "numeric">,
+  errors: string[]
+): Record<string, NormalizedHabitColors> {
+  const output: Record<string, NormalizedHabitColors> = {};
+
+  for (const [habit, colors] of Object.entries(input ?? {})) {
+    if (!isLowerSnakeCase(habit)) {
+      errors.push(`colors.habits contains invalid habit name (use lower_snake_case): ${habit}`);
+      continue;
+    }
+
+    const thresholdsInput = colors.numeric?.thresholds ?? [];
+    const thresholds = thresholdsInput.length > 0 ? normalizeThresholds(thresholdsInput, errors) : defaults.numeric.thresholds;
+
+    output[habit] = {
+      noData: colors.noData ?? defaults.noData,
+      blankFuture: colors.blankFuture ?? defaults.blankFuture,
+      boolean: {
+        true: colors.boolean?.true ?? defaults.boolean.true,
+        false: colors.boolean?.false ?? defaults.boolean.false
+      },
+      numeric: {
+        thresholds
+      }
+    };
   }
 
   return output;
@@ -706,15 +791,23 @@ function getCalendarBounds(range: RangeResolution, weekStart: WeekStart): { star
 }
 
 function weekdayIndex(date: Date, weekStart: WeekStart): number {
-  const sundayBased = date.getDay();
-  if (weekStart === "Sunday") {
-    return sundayBased;
-  }
-  return (sundayBased + 6) % 7;
+  const sundayBased = date.getUTCDay();
+  const offsets: Record<WeekStart, number> = {
+    Saturday: 6,
+    Sunday: 0,
+    Monday: 1
+  };
+  return (sundayBased - offsets[weekStart] + 7) % 7;
 }
 
 function buildWeekdayLabels(weekStart: WeekStart): string[] {
-  return weekStart === "Sunday" ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const offsets: Record<WeekStart, number> = {
+    Saturday: 6,
+    Sunday: 0,
+    Monday: 1
+  };
+  return labels.slice(offsets[weekStart]).concat(labels.slice(0, offsets[weekStart]));
 }
 
 function enumerateDates(startIso: string, endIso: string): string[] {
@@ -734,17 +827,15 @@ function enumerateDates(startIso: string, endIso: string): string[] {
 }
 
 function dayDiffInclusive(start: Date, end: Date): number {
-  const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-  const endMidnight = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
-  return Math.floor((endMidnight - startMidnight) / 86400000) + 1;
+  return Math.floor((utcDayNumber(end) - utcDayNumber(start)) / 86400000) + 1;
 }
 
 function addDays(date: Date, days: number): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
 }
 
 function toIsoDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 function parseIsoDate(date: string): Date | null {
@@ -754,12 +845,12 @@ function parseIsoDate(date: string): Date | null {
   }
 
   const [year, month, day] = normalized.split("-").map((part) => Number(part));
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function todayIsoDate(): string {
   const now = new Date();
-  return toIsoDate(now);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {
@@ -768,6 +859,14 @@ function clampNumber(value: number | undefined, min: number, max: number, fallba
   }
 
   return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function normalizeWeekStart(value: unknown): WeekStart {
+  return value === "Saturday" || value === "Sunday" ? value : "Monday";
+}
+
+function utcDayNumber(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
 function isValidYear(year: unknown): year is number {
